@@ -233,7 +233,7 @@ func (b *NetworkBuilder) validate() error {
 	return nil
 }
 
-func contains[T any](slice []T, values ...T) bool {
+func contains[T comparable](slice []T, values ...T) bool {
 	for i := 0; i < len(values); i++ {
 		if !slices.Contains(slice, values[i]) {
 			return false
