@@ -1,6 +1,7 @@
 package wpaSuppDBusLib
 
 type eapProvider interface {
+	validate() bool
 }
 
 func init() {
