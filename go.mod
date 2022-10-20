@@ -1,4 +1,4 @@
-module wpaSuppDBusLib
+module git.dev.zgrp.net/litecom/libs/wpaSupplicantDbusLib
 
 go 1.18
 
