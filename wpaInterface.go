@@ -26,5 +26,5 @@ type NetworkInterface struct {
 	eapolVersion       EapolVersion `json:"eapol_version,omitempty"`
 	apScan             ApScan       `json:"ap_scan,omitempty"`
 	fastReauth         FastReauth   `json:"fast_reauth,omitempty"`
-	network            Network      `json:"network"`
+	network            []Network    `json:"network"`
 }

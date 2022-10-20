@@ -3,15 +3,15 @@ package wpaSuppDBusLib
 import "sync"
 
 var mapMutex sync.Mutex
-var eapProviders = make(map[string]eapProvider)
+var eapProviders = make(map[string]eapMethod)
 
-func register(name string, provider eapProvider) {
+func register(name string, provider eapMethod) {
 	mapMutex.Lock()
 	defer mapMutex.Unlock()
 	eapProviders[name] = provider
 }
 
-func lookup(name string) *eapProvider {
+func lookup(name string) *eapMethod {
 	mapMutex.Lock()
 	defer mapMutex.Unlock()
 	provider := eapProviders[name]

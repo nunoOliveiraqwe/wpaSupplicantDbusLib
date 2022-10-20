@@ -1,16 +1,16 @@
 package wpaSuppDBusLib
 
-type eapProvider interface {
-	validate() bool
+type eapMethod interface {
+	ToConfigString() string
+	GetEAPName() string
+}
+
+type eapBuilder interface {
+	Build() (eapMethod, error)
 }
 
 func init() {
 
-}
-
-type md5 struct {
-	username string
-	password string
 }
 
 type tls struct {
