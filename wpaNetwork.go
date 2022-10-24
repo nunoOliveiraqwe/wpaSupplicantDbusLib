@@ -3,7 +3,6 @@ package wpaSuppDBusLib
 import (
 	"errors"
 	"fmt"
-	"golang.org/x/exp/slices"
 	"strings"
 )
 
@@ -37,6 +36,7 @@ const (
 	GroupTKIP             Group         = "TKIP"
 	GroupWEP104           Group         = "WEP104"
 	GroupWEP40            Group         = "WEP40"
+	EapolOff              EapolFlag     = 0
 	EapolDynamicUnicast   EapolFlag     = 1
 	EapolDynamicBroadcast EapolFlag     = 2
 	EapolDynamicBoth      EapolFlag     = 3
@@ -49,7 +49,7 @@ var keyMngtSlice = []KeyManagement{WpaEAP, WpaPSK, IEEE8021X, NONE}
 var authAlgSlice = []AuthAlg{AuthAlgOpen, AuthAlgShared, AuthAlgLeap}
 var pairWiseSlice = []PairWise{PairWiseCCMP, PairWiseTKIP, PairWiseNone}
 var groupSlice = []Group{GroupCCMP, GroupTKIP, GroupWEP104, GroupWEP40}
-var eapFlagSlice = []EapolFlag{EapolDynamicUnicast, EapolDynamicBroadcast, EapolDynamicBoth}
+var eapFlagSlice = []EapolFlag{EapolOff, EapolDynamicUnicast, EapolDynamicBroadcast, EapolDynamicBoth}
 
 type Network struct {
 	ssid     string          `json:"ssid"`
@@ -86,8 +86,8 @@ type networkBuilder interface {
 
 type NetworkBuilder struct {
 	// Ssid Service Set IDentifier
-	ssid       string          `json:"ssid"`
-	scanSsid   ScanSSID        `json:"scanSsid,omitempty"`
+	ssid     string   `json:"ssid"`
+	scanSsid ScanSSID `json:"scanSsid,omitempty"`
 	// Bssid Basic Service Set IDentifier
 	bssid      string          `json:"bssid,omitempty"`
 	priority   uint            `json:"priority,omitempty"`
@@ -292,76 +292,67 @@ func (b *NetworkBuilder) validate() error {
 	return nil
 }
 
-func contains[T comparable](slice []T, values ...T) bool {
-	for i := 0; i < len(values); i++ {
-		if !slices.Contains(slice, values[i]) {
-			return false
-		}
-	}
-	return true
-}
-
 func (net *Network) ToConfigString() string {
 	builder := strings.Builder{}
 	builder.WriteString("network={\n")
 	if net.ssid != "" {
-		builder.WriteString(fmt.Sprintf("ssid=\"%s\"\n", net.ssid))
+		builder.WriteString(fmt.Sprintf("  ssid=\"%s\"\n", net.ssid))
 	}
 	if net.scanSsid != -1 {
-		builder.WriteString(fmt.Sprintf("scan_ssid=%d\n", net.scanSsid))
+		builder.WriteString(fmt.Sprintf("  scan_ssid=%d\n", net.scanSsid))
 	}
 	if net.bssid != "" {
-		builder.WriteString(fmt.Sprintf("bssid=\"%s\"\n", net.bssid))
+		builder.WriteString(fmt.Sprintf("  bssid=\"%s\"\n", net.bssid))
 	}
 	if net.priority != 0 {
-		builder.WriteString(fmt.Sprintf("priority=%d\n", net.priority))
+		builder.WriteString(fmt.Sprintf("  priority=%d\n", net.priority))
 	}
 	if net.mode != -1 {
-		builder.WriteString(fmt.Sprintf("mode=%d\n", net.mode))
+		builder.WriteString(fmt.Sprintf("  mode=%d\n", net.mode))
 	}
 	if net.proto != nil && len(net.proto) > 0 {
-		builder.WriteString(fmt.Sprintf("proto=%s", net.proto[0]))
+		builder.WriteString(fmt.Sprintf("  proto=%s", net.proto[0]))
 		for i := 1; i < len(net.proto); i++ {
 			builder.WriteString(fmt.Sprintf(" %s", net.proto[i]))
 		}
 		builder.WriteString("\n")
 	}
 	if net.keyMngnt != nil && len(net.keyMngnt) > 0 {
-		builder.WriteString(fmt.Sprintf("key_mgmt=%s", net.keyMngnt[0]))
+		builder.WriteString(fmt.Sprintf("  key_mgmt=%s", net.keyMngnt[0]))
 		for i := 1; i < len(net.keyMngnt); i++ {
 			builder.WriteString(fmt.Sprintf(" %s", net.keyMngnt[i]))
 		}
 		builder.WriteString("\n")
 	}
 	if net.authAlg != nil && len(net.authAlg) > 0 {
-		builder.WriteString(fmt.Sprintf("auth_alg=%s", net.authAlg[0]))
+		builder.WriteString(fmt.Sprintf("  auth_alg=%s", net.authAlg[0]))
 		for i := 1; i < len(net.authAlg); i++ {
 			builder.WriteString(fmt.Sprintf(" %s", net.authAlg[i]))
 		}
 		builder.WriteString("\n")
 	}
 	if net.pairWise != nil && len(net.pairWise) > 0 {
-		builder.WriteString(fmt.Sprintf("pairwise=%s", net.pairWise[0]))
+		builder.WriteString(fmt.Sprintf("  pairwise=%s", net.pairWise[0]))
 		for i := 1; i < len(net.pairWise); i++ {
 			builder.WriteString(fmt.Sprintf(" %s", net.pairWise[i]))
 		}
 		builder.WriteString("\n")
 	}
 	if net.group != nil && len(net.group) > 0 {
-		builder.WriteString(fmt.Sprintf("group=%s", net.group[0]))
+		builder.WriteString(fmt.Sprintf("  group=%s", net.group[0]))
 		for i := 1; i < len(net.group); i++ {
 			builder.WriteString(fmt.Sprintf(" %s", net.group[i]))
 		}
 		builder.WriteString("\n")
 	}
 	if net.psk != "" {
-		builder.WriteString(fmt.Sprintf("ssid=%s\n", net.psk))
+		builder.WriteString(fmt.Sprintf("  ssid=%s\n", net.psk))
 	}
 	if net.eaPol != -1 {
-		builder.WriteString(fmt.Sprintf("eapol_flags=%d\n", net.eaPol))
+		builder.WriteString(fmt.Sprintf("  eapol_flags=%d\n", net.eaPol))
 	}
 	if net.eap != nil && len(net.eap) > 0 {
-		builder.WriteString(fmt.Sprintf("eap=%s", net.eap[0].GetEAPName()))
+		builder.WriteString(fmt.Sprintf("  eap=%s", net.eap[0].GetEAPName()))
 		for i := 1; i < len(net.eap); i++ {
 			builder.WriteString(fmt.Sprintf(" %s", net.eap[i].GetEAPName()))
 		}

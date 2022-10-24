@@ -8,16 +8,3 @@ type eapMethod interface {
 type eapBuilder interface {
 	Build() (eapMethod, error)
 }
-
-func init() {
-
-}
-
-type tls struct {
-}
-
-type ttls struct {
-}
-
-type peap struct {
-}

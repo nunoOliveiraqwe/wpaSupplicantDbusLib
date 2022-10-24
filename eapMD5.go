@@ -15,7 +15,7 @@ func (m *md5EapMethod) GetEAPName() string {
 }
 
 func (m *md5EapMethod) ToConfigString() string {
-	return fmt.Sprintf("username=\"%s\"\npassword=\"%s\"\n", m.username, m.password)
+	return fmt.Sprintf("  username=\"%s\"\n  password=\"%s\"\n", m.username, m.password)
 }
 
 type MD5EAPBuilder struct {

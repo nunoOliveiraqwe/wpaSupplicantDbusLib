@@ -1,7 +1,29 @@
 package wpaSuppDBusLib
 
 import (
+	"fmt"
 	"github.com/godbus/dbus/v5"
+	"golang.org/x/exp/slices"
+	"os"
+	"path"
+)
+
+type Driver string
+
+/*
+drivers:
+nl80211 = Linux nl80211/cfg80211
+wext = Linux wireless extensions (generic)
+wired = Wired Ethernet driver
+macsec_linux = MACsec Ethernet driver for Linux
+none = no driver (RADIUS server/WPS ER)
+*/
+const (
+	DriverNL80211     Driver = "nl80211"
+	DriverWext        Driver = "wext"
+	DriverWired       Driver = "wired"
+	DriverMacSecLinux Driver = "macsec_linux"
+	DriverNone        Driver = "None"
 )
 
 type WpaSupplicantDbus struct {
@@ -34,19 +56,31 @@ func (wpaDbus *WpaSupplicantDbus) Close() error {
 	return wpaDbus.dbusCon.Close()
 }
 
-func (wpaDbus *WpaSupplicantDbus) CreateInterface() {
-
+func (wpaDbus *WpaSupplicantDbus) CreateInterface(interfaceName, bridgeName string, driver Driver, wpaInterface WPAInterface, pathToSaveInterfaceConfig string, signalChannel chan<- *dbus.Signal) (interface{}, error) {
+	confStr := wpaInterface.ToConfigString()
+	fileName := ""
+	if driver == DriverWired {
+		fileName = fmt.Sprintf("wpa_supplicant-wired-%s", interfaceName)
+	} else {
+		fileName = fmt.Sprintf("wpa_supplicant-%s", interfaceName)
+	}
+	fullPath := path.Join(pathToSaveInterfaceConfig, fileName)
+	err := os.WriteFile(fullPath, []byte(confStr), 0600)
+	if err != nil {
+		return nil, err
+	}
+	return createInterface(wpaDbus, interfaceName, bridgeName, driver, fullPath, signalChannel)
 }
 
 func (wpaDbus *WpaSupplicantDbus) ExpectDisconnect() {
 
 }
 
-func (wpaDbus *WpaSupplicantDbus) GetInterface() {
-
+func (wpaDbus *WpaSupplicantDbus) GetInterface(interfaceName string) interface{} {
+	return nil
 }
 
-func (wpaDbus *WpaSupplicantDbus) RemoveInterface() {
+func (wpaDbus *WpaSupplicantDbus) RemoveInterface(interfaceObj interface{}) {
 
 }
 
@@ -57,4 +91,13 @@ func (wpaDbus *WpaSupplicantDbus) ReadAllProperties() error {
 	readDebugTimeStamp(wpaDbus)
 	readDebugLevel(wpaDbus)
 	return nil
+}
+
+func contains[T comparable](slice []T, values ...T) bool {
+	for i := 0; i < len(values); i++ {
+		if !slices.Contains(slice, values[i]) {
+			return false
+		}
+	}
+	return true
 }

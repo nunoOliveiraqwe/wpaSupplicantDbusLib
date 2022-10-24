@@ -1,10 +1,13 @@
 package wpaSuppDBusLib
 
 import (
+	"fmt"
 	"github.com/godbus/dbus/v5"
 )
 
 var dbusWPAname = "fi.w1.wpa_supplicant1"
+
+var dbusWPAInterfacename = "fi.w1.wpa_supplicant1.Interface"
 
 var dbusWPAObjectPath = dbus.ObjectPath("/fi/w1/wpa_supplicant1")
 
@@ -14,6 +17,32 @@ func newConn() (*dbus.Conn, error) {
 		return nil, err
 	}
 	return con, nil
+}
+
+func createInterface(wpaDbus *WpaSupplicantDbus, interfaceName, bridgeName string, driver Driver, pathToSaveInterfaceConfig string, callbackForSignal chan<- *dbus.Signal) (interface{}, error) {
+	obj := wpaDbus.dbusCon.Object(dbusWPAname, dbusWPAObjectPath)
+	var result interface{}
+	argMap := make(map[string]interface{})
+	argMap["Ifname"] = interfaceName
+	argMap["BridgeIfname"] = bridgeName
+	argMap["Driver"] = string(driver)
+	argMap["ConfigFile"] = pathToSaveInterfaceConfig
+	err := obj.Call(dbusWPAname+".CreateInterface", 0, argMap).Store(&result)
+	if err != nil {
+		wpaDbus.logger.Error(err)
+		return nil, err
+	}
+	interfaceNameRet := fmt.Sprint(result)
+	objInterface := wpaDbus.dbusCon.Object(dbusWPAInterfacename, dbus.ObjectPath(interfaceNameRet))
+
+	if err = wpaDbus.dbusCon.AddMatchSignal(
+		dbus.WithMatchObjectPath(objInterface.Path()),
+		dbus.WithMatchInterface(objInterface.Destination()),
+	); err != nil {
+		panic(err)
+	}
+	wpaDbus.dbusCon.Signal(callbackForSignal)
+	return result, nil
 }
 
 func readWFDIEs(wpaDbus *WpaSupplicantDbus) error {
