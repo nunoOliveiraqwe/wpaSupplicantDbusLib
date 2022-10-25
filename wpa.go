@@ -56,7 +56,7 @@ func (wpaDbus *WpaSupplicantDbus) Close() error {
 	return wpaDbus.dbusCon.Close()
 }
 
-func (wpaDbus *WpaSupplicantDbus) CreateInterface(interfaceName, bridgeName string, driver Driver, wpaInterface WPAInterface, pathToSaveInterfaceConfig string, signalChannel chan<- *dbus.Signal) (dbus.ObjectPath, error) {
+func (wpaDbus *WpaSupplicantDbus) CreateInterface(interfaceName, bridgeName string, driver Driver, wpaInterface WPAInterface, pathToSaveInterfaceConfig string, stateChangeChan chan<- string) (dbus.ObjectPath, error) {
 	confStr := wpaInterface.ToConfigString()
 	fileName := ""
 	if driver == DriverWired {
@@ -69,7 +69,7 @@ func (wpaDbus *WpaSupplicantDbus) CreateInterface(interfaceName, bridgeName stri
 	if err != nil {
 		return "", err
 	}
-	ifPath, err := createInterface(wpaDbus, interfaceName, bridgeName, driver, fullPath, signalChannel)
+	ifPath, err := createInterface(wpaDbus, interfaceName, bridgeName, driver, fullPath, stateChangeChan)
 	if err != nil {
 		return "", err
 	}

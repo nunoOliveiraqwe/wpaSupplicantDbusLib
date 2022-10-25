@@ -2,9 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	wpaSuppDBusLib "git.dev.zgrp.net/litecom/libs/wpaSupplicantDbusLib"
-	"github.com/godbus/dbus/v5"
 	"log"
 )
 
@@ -14,7 +12,7 @@ func main() {
 	clientCertPath := flag.String("clientCertPath", "", "path to client cert")
 	privateKeyPath := flag.String("privateKeyPath", "", "path to private key")
 	privateKeyPassword := flag.String("privateKeyPassword", "", "private key password")
-	interfaceName := flag.String("interfaceName", "eth0", "network interface name")
+	interfaceName := flag.String("interfaceName", "enp0s3", "network interface name")
 	wpaCtrlInterface := flag.String("wpaCtrlInterface", "/run/wpa_supplicant", "path to control interface of wpa supplicant")
 	storagePathToWpaConfFiles := flag.String("storagePathToWpaConfFile", "/etc/wpa_supplicant/", "path where to store wpa interface config file")
 	flag.Parse()
@@ -38,9 +36,12 @@ func main() {
 	log.Println(confStr)
 
 	supDaemon, _ := wpaSuppDBusLib.NewWpaSupplicantDaemon()
-	signalChannel := make(chan *dbus.Signal, 10)
-	supDaemon.CreateInterface(*interfaceName, "", wpaSuppDBusLib.DriverWired, *x, *storagePathToWpaConfFiles, signalChannel)
-	for msg := range signalChannel {
-		fmt.Println(msg)
+	stateChannel := make(chan string, 10)
+	_, err := supDaemon.CreateInterface(*interfaceName, "", wpaSuppDBusLib.DriverWired, *x, *storagePathToWpaConfFiles, stateChannel)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	for message := range stateChannel {
+		log.Println("Con state -> " + message)
 	}
 }
