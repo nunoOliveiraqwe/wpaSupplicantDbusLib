@@ -19,7 +19,7 @@ func newConn() (*dbus.Conn, error) {
 	return con, nil
 }
 
-func createInterface(wpaDbus *WpaSupplicantDbus, interfaceName, bridgeName string, driver Driver, pathToSaveInterfaceConfig string, stateChangeChan chan<- string) (dbus.ObjectPath, error) {
+func createInterface(wpaDbus *WpaSupplicantDbus, interfaceName, bridgeName string, driver Driver, pathToSaveInterfaceConfig string, stateChangeChan chan string) (dbus.ObjectPath, error) {
 	obj := wpaDbus.dbusCon.Object(dbusWPAname, dbusWPAObjectPath)
 	var result interface{}
 	argMap := make(map[string]interface{})
@@ -41,6 +41,7 @@ func createInterface(wpaDbus *WpaSupplicantDbus, interfaceName, bridgeName strin
 	if err = wpaDbus.dbusCon.AddMatchSignal(
 		dbus.WithMatchObjectPath(objInterface.Path()),
 		dbus.WithMatchInterface(objInterface.Destination()),
+		dbus.WithMatchMember("PropertiesChanged"),
 	); err != nil {
 		panic(err)
 	}
@@ -52,13 +53,12 @@ func createInterface(wpaDbus *WpaSupplicantDbus, interfaceName, bridgeName strin
 	return interfaceNameRet, nil
 }
 
-func stateChangeListenFunc(stateChangeChan chan<- string, signalChan chan *dbus.Signal) {
+func stateChangeListenFunc(stateChangeChan chan string, signalChan chan *dbus.Signal) {
 	for changedProp := range signalChan {
 		for i := 0; i < len(changedProp.Body); i++ {
-			if propMap, ok := changedProp.Body[i].(map[string]string); ok {
-				if value, contains := propMap["State"]; contains {
-					stateChangeChan <- value
-				}
+			noTypeMap := changedProp.Body[i].(map[string]dbus.Variant)
+			if value, contains := noTypeMap["State"]; contains {
+				stateChangeChan <- value.String()
 			}
 		}
 	}
