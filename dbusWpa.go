@@ -1,7 +1,7 @@
 package wpaSuppDBusLib
 
 import (
-	"fmt"
+	"errors"
 	"github.com/godbus/dbus/v5"
 )
 
@@ -19,7 +19,7 @@ func newConn() (*dbus.Conn, error) {
 	return con, nil
 }
 
-func createInterface(wpaDbus *WpaSupplicantDbus, interfaceName, bridgeName string, driver Driver, pathToSaveInterfaceConfig string, callbackForSignal chan<- *dbus.Signal) (interface{}, error) {
+func createInterface(wpaDbus *WpaSupplicantDbus, interfaceName, bridgeName string, driver Driver, pathToSaveInterfaceConfig string, callbackForSignal chan<- *dbus.Signal) (dbus.ObjectPath, error) {
 	obj := wpaDbus.dbusCon.Object(dbusWPAname, dbusWPAObjectPath)
 	var result interface{}
 	argMap := make(map[string]interface{})
@@ -30,10 +30,13 @@ func createInterface(wpaDbus *WpaSupplicantDbus, interfaceName, bridgeName strin
 	err := obj.Call(dbusWPAname+".CreateInterface", 0, argMap).Store(&result)
 	if err != nil {
 		wpaDbus.logger.Error(err)
-		return nil, err
+		return "", err
 	}
-	interfaceNameRet := fmt.Sprint(result)
-	objInterface := wpaDbus.dbusCon.Object(dbusWPAInterfacename, dbus.ObjectPath(interfaceNameRet))
+	if _, ok := result.(dbus.ObjectPath); !ok {
+		return "", errors.New("unknown return type from dbus. expected string")
+	}
+	interfaceNameRet := result.(dbus.ObjectPath)
+	objInterface := wpaDbus.dbusCon.Object(dbusWPAInterfacename, interfaceNameRet)
 
 	if err = wpaDbus.dbusCon.AddMatchSignal(
 		dbus.WithMatchObjectPath(objInterface.Path()),
@@ -42,7 +45,43 @@ func createInterface(wpaDbus *WpaSupplicantDbus, interfaceName, bridgeName strin
 		panic(err)
 	}
 	wpaDbus.dbusCon.Signal(callbackForSignal)
-	return result, nil
+	return interfaceNameRet, nil
+}
+
+func removeInterface(wpaDbus *WpaSupplicantDbus, wpaInterfaceName dbus.ObjectPath) error {
+	obj := wpaDbus.dbusCon.Object(dbusWPAname, dbusWPAObjectPath)
+	err := obj.Call(dbusWPAname+".RemoveInterface", 0, wpaInterfaceName).Err
+	if err != nil {
+		wpaDbus.logger.Error(err)
+		return err
+	}
+	delete(wpaDbus.CreatedWPAInterfaces, string(wpaInterfaceName))
+	return nil
+}
+
+func expectDisconnect(wpaDbus *WpaSupplicantDbus, wpaInterfaceName string) error {
+	obj := wpaDbus.dbusCon.Object(dbusWPAname, dbusWPAObjectPath)
+	err := obj.Call(dbusWPAname+".RemoveInterface", 0, dbus.ObjectPath(wpaInterfaceName)).Err
+	if err != nil {
+		wpaDbus.logger.Error(err)
+		return err
+	}
+	delete(wpaDbus.CreatedWPAInterfaces, wpaInterfaceName)
+	return nil
+}
+
+func getInterface(wpaDbus *WpaSupplicantDbus, networkInterfaceName string) (dbus.ObjectPath, error) {
+	obj := wpaDbus.dbusCon.Object(dbusWPAname, dbusWPAObjectPath)
+	var result interface{}
+	err := obj.Call(dbusWPAname+".GetInterface", 0, networkInterfaceName).Store(&result)
+	if err != nil {
+		wpaDbus.logger.Error(err)
+		return "", err
+	}
+	if _, ok := result.(dbus.ObjectPath); !ok {
+		return "", errors.New("unknown return type from dbus. expected string")
+	}
+	return result.(dbus.ObjectPath), nil
 }
 
 func readWFDIEs(wpaDbus *WpaSupplicantDbus) error {
@@ -95,16 +134,14 @@ func readDebugLevel(wpaDbus *WpaSupplicantDbus) error {
 	return nil
 }
 
-//
-//func readEapMethods(wpaDbus *WpaSupplicantDbus) error {
-//	obj := wpaDbus.dbusCon.Object(dbusWPAname, dbusWPAObjectPath)
-//	var availableEAPMethods []string
-//	err := obj.Call("org.freedesktop.DBus.Properties.Get", 0, dbusWPAname, "EapMethods").Store(&availableEAPMethods)
-//	if err != nil {
-//		wpaDbus.logger.Error(err)
-//		return err
-//	}
-//	wpaDbus.RawEapMethods = availableEAPMethods
-//	availableEapProviderKeys := eapRegistryGetMatchingKeys(availableEAPMethods)
-//
-//}
+func readEapMethods(wpaDbus *WpaSupplicantDbus) error {
+	obj := wpaDbus.dbusCon.Object(dbusWPAname, dbusWPAObjectPath)
+	var availableEAPMethods []string
+	err := obj.Call("org.freedesktop.DBus.Properties.Get", 0, dbusWPAname, "EapMethods").Store(&availableEAPMethods)
+	if err != nil {
+		wpaDbus.logger.Error(err)
+		return err
+	}
+	wpaDbus.EapMethods = availableEAPMethods
+	return nil
+}

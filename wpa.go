@@ -27,15 +27,15 @@ const (
 )
 
 type WpaSupplicantDbus struct {
-	dbusCon                *dbus.Conn
-	logger                 Logger
-	EapMethods             []string
-	WFDIEs                 []byte
-	Capabilities           []string
-	DebugShowKeys          bool
-	DebugTimeStamp         bool
-	DebugLevel             string
-	availableProvidersKeys []string
+	dbusCon              *dbus.Conn
+	logger               Logger
+	EapMethods           []string
+	WFDIEs               []byte
+	Capabilities         []string
+	DebugShowKeys        bool
+	DebugTimeStamp       bool
+	DebugLevel           string
+	CreatedWPAInterfaces map[string]WPAInterface
 }
 
 func NewWpaSupplicantDaemonWithLogger(logger Logger) (*WpaSupplicantDbus, error) {
@@ -43,7 +43,7 @@ func NewWpaSupplicantDaemonWithLogger(logger Logger) (*WpaSupplicantDbus, error)
 	if err != nil {
 		return nil, err
 	}
-	supDaemon := WpaSupplicantDbus{dbusCon: con, logger: logger}
+	supDaemon := WpaSupplicantDbus{dbusCon: con, logger: logger, CreatedWPAInterfaces: make(map[string]WPAInterface)}
 	return &supDaemon, nil
 }
 
@@ -56,7 +56,7 @@ func (wpaDbus *WpaSupplicantDbus) Close() error {
 	return wpaDbus.dbusCon.Close()
 }
 
-func (wpaDbus *WpaSupplicantDbus) CreateInterface(interfaceName, bridgeName string, driver Driver, wpaInterface WPAInterface, pathToSaveInterfaceConfig string, signalChannel chan<- *dbus.Signal) (interface{}, error) {
+func (wpaDbus *WpaSupplicantDbus) CreateInterface(interfaceName, bridgeName string, driver Driver, wpaInterface WPAInterface, pathToSaveInterfaceConfig string, signalChannel chan<- *dbus.Signal) (dbus.ObjectPath, error) {
 	confStr := wpaInterface.ToConfigString()
 	fileName := ""
 	if driver == DriverWired {
@@ -67,21 +67,26 @@ func (wpaDbus *WpaSupplicantDbus) CreateInterface(interfaceName, bridgeName stri
 	fullPath := path.Join(pathToSaveInterfaceConfig, fileName)
 	err := os.WriteFile(fullPath, []byte(confStr), 0600)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return createInterface(wpaDbus, interfaceName, bridgeName, driver, fullPath, signalChannel)
+	ifPath, err := createInterface(wpaDbus, interfaceName, bridgeName, driver, fullPath, signalChannel)
+	if err != nil {
+		return "", err
+	}
+	wpaDbus.CreatedWPAInterfaces[string(ifPath)] = wpaInterface
+	return ifPath, nil
 }
 
-func (wpaDbus *WpaSupplicantDbus) ExpectDisconnect() {
-
+func (wpaDbus *WpaSupplicantDbus) ExpectDisconnect(wpaInterfaceName string) error {
+	return expectDisconnect(wpaDbus, wpaInterfaceName)
 }
 
-func (wpaDbus *WpaSupplicantDbus) GetInterface(interfaceName string) interface{} {
-	return nil
+func (wpaDbus *WpaSupplicantDbus) GetInterface(systemNetworkInterfaceName string) (dbus.ObjectPath, error) {
+	return getInterface(wpaDbus, systemNetworkInterfaceName)
 }
 
-func (wpaDbus *WpaSupplicantDbus) RemoveInterface(interfaceObj interface{}) {
-
+func (wpaDbus *WpaSupplicantDbus) RemoveInterface(wpaInterfaceName dbus.ObjectPath) error {
+	return removeInterface(wpaDbus, wpaInterfaceName)
 }
 
 func (wpaDbus *WpaSupplicantDbus) ReadAllProperties() error {
@@ -90,6 +95,7 @@ func (wpaDbus *WpaSupplicantDbus) ReadAllProperties() error {
 	readDebugShowKeys(wpaDbus)
 	readDebugTimeStamp(wpaDbus)
 	readDebugLevel(wpaDbus)
+	readEapMethods(wpaDbus)
 	return nil
 }
 

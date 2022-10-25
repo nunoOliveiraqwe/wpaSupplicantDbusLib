@@ -92,13 +92,13 @@ func (t *TLSBuilder) Build() (eapMethod, error) {
 
 func (t *TLSBuilder) validate() error {
 	if t.identity == "" {
-		errors.New("invalid value for identity")
+		return errors.New("invalid value for identity")
 	}
 	if t.clientCert == "" {
-		errors.New("invalid value for client cert")
+		return errors.New("invalid value for client cert")
 	}
 	if t.privateKey == "" {
-		errors.New("invalid value for private key")
+		return errors.New("invalid value for private key")
 	}
 	return nil
 }
