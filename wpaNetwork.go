@@ -268,19 +268,19 @@ func (b *NetworkBuilder) validate() error {
 	if b.mode != -1 && !contains(modeSlice, b.mode) {
 		return errors.New("invalid value for mode")
 	}
-	if !contains(protoSlice, b.proto...) {
+	if !contains(protoSlice, b.proto) {
 		return errors.New("invalid value for proto")
 	}
-	if !contains(keyMngtSlice, b.keyMngnt...) {
+	if !contains(keyMngtSlice, b.keyMngnt) {
 		return errors.New("invalid value for key management")
 	}
-	if !contains(authAlgSlice, b.authAlg...) {
+	if !contains(authAlgSlice, b.authAlg) {
 		return errors.New("invalid value for auth alg")
 	}
-	if !contains(pairWiseSlice, b.pairWise...) {
+	if !contains(pairWiseSlice, b.pairWise) {
 		return errors.New("invalid value for pair wise")
 	}
-	if !contains(groupSlice, b.group...) {
+	if !contains(groupSlice, b.group) {
 		return errors.New("invalid value for group")
 	}
 	if b.eaPol != -1 && !contains(eapFlagSlice, b.eaPol) {

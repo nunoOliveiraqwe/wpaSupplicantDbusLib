@@ -3,9 +3,9 @@ package wpaSuppDBusLib
 import (
 	"fmt"
 	"github.com/godbus/dbus/v5"
-	"golang.org/x/exp/slices"
 	"os"
 	"path"
+	"reflect"
 )
 
 type Driver string
@@ -99,10 +99,35 @@ func (wpaDbus *WpaSupplicantDbus) ReadAllProperties() error {
 	return nil
 }
 
-func contains[T comparable](slice []T, values ...T) bool {
-	for i := 0; i < len(values); i++ {
-		if !slices.Contains(slice, values[i]) {
-			return false
+func contains(slice interface{}, values interface{}) bool {
+	if reflect.TypeOf(slice).Kind() == reflect.Slice || reflect.TypeOf(slice).Kind() == reflect.Array {
+		list := reflect.ValueOf(slice)
+		if reflect.TypeOf(values).Kind() == reflect.Slice || reflect.TypeOf(values).Kind() == reflect.Array {
+			valueList := reflect.ValueOf(values)
+			for j := 0; j < valueList.Len(); j++ {
+				if valueList.Index(j).Interface() == nil {
+					continue
+				}
+				found := false
+				for i := 0; i < list.Len(); i++ {
+					if valueList.Index(j).Interface() == list.Index(i).Interface() {
+						found = true
+					}
+				}
+				if !found {
+					return false
+				}
+			}
+		} else {
+			found := false
+			for i := 0; i < list.Len(); i++ {
+				if values == list.Index(i).Interface() {
+					found = true
+				}
+			}
+			if !found {
+				return false
+			}
 		}
 	}
 	return true
