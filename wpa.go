@@ -60,9 +60,9 @@ func (wpaDbus *WpaSupplicantDbus) CreateInterface(interfaceName, bridgeName stri
 	confStr := wpaInterface.ToConfigString()
 	fileName := ""
 	if driver == DriverWired {
-		fileName = fmt.Sprintf("wpa_supplicant-wired-%s", interfaceName)
+		fileName = fmt.Sprintf("wpa_supplicant-wired-%s.conf", interfaceName)
 	} else {
-		fileName = fmt.Sprintf("wpa_supplicant-%s", interfaceName)
+		fileName = fmt.Sprintf("wpa_supplicant-%s.conf", interfaceName)
 	}
 	fullPath := path.Join(pathToSaveInterfaceConfig, fileName)
 	err := os.WriteFile(fullPath, []byte(confStr), 0600)
