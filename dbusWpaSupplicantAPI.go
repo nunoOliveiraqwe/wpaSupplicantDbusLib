@@ -38,7 +38,7 @@ type WpaSupplicantDbus struct {
 	CreatedWPAInterfaces map[string]WPAInterface
 }
 
-func NewWpaSupplicantDaemonWithLogger(logger Logger) (*WpaSupplicantDbus, error) {
+func NewWpaSupplicantAPIWithLogger(logger Logger) (*WpaSupplicantDbus, error) {
 	con, err := newConn()
 	if err != nil {
 		return nil, err
@@ -47,9 +47,9 @@ func NewWpaSupplicantDaemonWithLogger(logger Logger) (*WpaSupplicantDbus, error)
 	return &supDaemon, nil
 }
 
-func NewWpaSupplicantDaemon() (*WpaSupplicantDbus, error) {
+func NewWpaSupplicantAPI() (*WpaSupplicantDbus, error) {
 	logger := newDefaultLogger()
-	return NewWpaSupplicantDaemonWithLogger(logger)
+	return NewWpaSupplicantAPIWithLogger(logger)
 }
 
 func (wpaDbus *WpaSupplicantDbus) Close() error {

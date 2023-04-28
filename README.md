@@ -1,12 +1,32 @@
+# Go WPA Supplicant DBus Library
+
+This is a Go library that provides an abstraction over the details of interacting with the WPA Supplicant via the DBus interface. 
+It enables developers to easily build  WPA Supplicant configurations, including support for various authentication methods such as TLS, TTLS, EAP, and MD5.
+
+## Installation
+
+You can install the library with the following command:
+
+```
+go get github.com/nunooliveiraqwe/wpa_supplicant_dbus_lib
+```
+
+## Usage
+
+The example code below demonstrates how to use the library to configure the WPA Supplicant for a wired configuration with TLS auth:
+
+```go
 package main
 
 import (
 	"flag"
-	wpaSuppDBusLib "git.dev.zgrp.net/litecom/libs/wpaSupplicantDbusLib"
 	"log"
+
+	"github.com/your_username/wpa_supplicant_dbus_lib"
 )
 
 func main() {
+	// Parse command line arguments
 	caCertPath := flag.String("caCertPath", "", "path to ca cert")
 	identity := flag.String("identity", "", "tls identity")
 	clientCertPath := flag.String("clientCertPath", "", "path to client cert")
@@ -17,7 +37,7 @@ func main() {
 	storagePathToWpaConfFiles := flag.String("storagePathToWpaConfFile", "/etc/wpa_supplicant/", "path where to store wpa interface config file")
 	flag.Parse()
 
-	//build auth type TLS
+	// Build auth type TLS
 	tlsAuthBuilder := wpaSuppDBusLib.NewTLSBuilder()
 	tlsEap, err := tlsAuthBuilder.
 		WithIdentity(*identity).
@@ -29,21 +49,22 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	//build a wired network with prev auth type
+	// Build a wired network with previous auth type
 	netBuilder := wpaSuppDBusLib.NewNetworkBuilder()
 	network, _ := netBuilder.WithKeyManagement(wpaSuppDBusLib.IEEE8021X).WithEapolFlag(wpaSuppDBusLib.EapolOff).WithEAPMethods(tlsEap).Build()
 
-	//build the WPA interface definition
+	// Build the WPA interface definition
 	ifBuilder := wpaSuppDBusLib.NewWpaInterfaceBuilder()
 	wpaInterface, err := ifBuilder.WithApScan(wpaSuppDBusLib.ApScanOff).WithNetwork(*network).WithCtrlInterface(*wpaCtrlInterface).Build()
 	if err != nil {
 		log.Fatalln(err)
 	}
-	//print config
+
+	// Print config
 	confStr := wpaInterface.ToConfigString()
 	log.Println(confStr)
 
-	//use supplicant API to set it all up
+	// Use supplicant API to set it all up
 	supplicantAPI, _ := wpaSuppDBusLib.NewWpaSupplicantAPI()
 	stateChannel := make(chan string, 10)
 	dbusPath, err := supplicantAPI.CreateInterface(*interfaceName, "", wpaSuppDBusLib.DriverWired, *wpaInterface, *storagePathToWpaConfFiles, stateChannel)
@@ -55,3 +76,4 @@ func main() {
 		log.Println("Con state -> " + message)
 	}
 }
+``
